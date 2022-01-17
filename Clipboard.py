@@ -12,22 +12,28 @@ from ColorPrint import *
 
 proxy = None
 
-def translate(text):
-    text = text.value
-    result = ""
-    ts_func_list = [ts.alibaba, ts.tencent, ts.google, ts.baidu, ts.bing, ts.caiyun]
-    ColorPrint.print_bold("Plain: " + text)
-    for i, translator in enumerate(ts_func_list):
-        try:
-            result = "[" + str(translator).split(' ')[2].split('.')[0] + "]\r\n" + translator(text, to_language="zh", if_use_cn_host=True, timeout=3, proxy=proxy)
-        except:
-            if i == len(ts_func_list) - 1:
-                ColorPrint.print_fail("Translate Failed")
-                return
-            continue
 
-        break
-    ColorPrint.print_pass(result)
+# def translate(text):
+#     text = text.value
+#     result = ""
+#     ts_func_list = [ts.alibaba, ts.tencent, ts.google, ts.baidu, ts.bing, ts.caiyun]
+#     ColorPrint.print_bold("Plain: " + text)
+#     is_word = (" " in text)
+#     for i, translator in enumerate(ts_func_list):
+#         try:
+#             result += "[" + str(translator).split(' ')[2].split('.')[0] + "]\r\n" + translator(text, to_language="zh",
+#                                                                                                if_use_cn_host=True,
+#                                                                                                timeout=3,
+#                                                                                                proxy=proxy) + "\r\n"
+#         except:
+#             if i == len(ts_func_list) - 1:
+#                 ColorPrint.print_fail("Translate Failed")
+#                 return
+#             continue
+#         if is_word:
+#             break
+#     ColorPrint.print_pass(result)
+
 
 class Clipboard:
     @dataclass
@@ -90,11 +96,17 @@ class Clipboard:
             for type, type_str in clip_types.items():
                 if win32clipboard.IsClipboardFormatAvailable(type):
                     return Clipboard.Clip(type_str,
-                                          win32clipboard.GetClipboardData(type).replace("\r\n", " ").replace("\n", " "))
+                                          win32clipboard.GetClipboardData(type)
+                                          .replace("\r\n", " ")
+                                          .replace("\n", " ")
+                                          .replace("- ", ""))   # support for `-\n`
 
             return None
         finally:
-            win32clipboard.CloseClipboard()
+            try:
+                win32clipboard.CloseClipboard()
+            except:
+                print("")
 
     def listen(self):
         if self._trigger_at_start:
@@ -108,7 +120,8 @@ class Clipboard:
         th = threading.Thread(target=runner, daemon=True)
         th.start()
         while th.is_alive():
-            th.join(0.25)
+            th.join(1)
+
 
 if __name__ == '__main__':
     clipboard = Clipboard(on_update=translate, trigger_at_start=True)
